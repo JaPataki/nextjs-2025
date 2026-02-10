@@ -1,12 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { recordPlayback } from "@/actions/playback";
+import { LikeSongButton } from "@/components/LikeSongButton";
+import { AddSongToPlaylistButton } from "@/app/album/[id]/AddSongToPlaylistButton";
 
 interface Song {
   id: number;
   name: string;
   artist: string;
   duration: number;
+}
+
+interface Playlist {
+  id: number;
+  name: string;
+}
+
+interface PlaybackBarProps {
+  initialSongs: Song[];
+  initialPlaylists: Playlist[];
+  initialLikedSongIds: number[];
 }
 
 function formatDuration(duration: number): string {
@@ -16,22 +30,24 @@ function formatDuration(duration: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-export function PlaybackBar() {
-  const [queue, setQueue] = useState<Song[]>([
-    { id: 1, name: "Midnight Dreams", artist: "Luna Sky", duration: 234 },
-    { id: 2, name: "Electric Sunset", artist: "Neon Waves", duration: 187 },
-    { id: 3, name: "Ocean Waves", artist: "Coastal", duration: 312 },
-    { id: 4, name: "City Lights", artist: "Urban Echo", duration: 198 },
-    { id: 5, name: "Mountain Echo", artist: "Alpine", duration: 267 },
-  ]);
-  const [currentSong, setCurrentSong] = useState<Song | null>(queue[0]);
+export function PlaybackBar({ initialSongs, initialPlaylists, initialLikedSongIds }: PlaybackBarProps) {
+  const [queue, setQueue] = useState<Song[]>(initialSongs);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(87);
+  const [progress, setProgress] = useState(0);
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [originalQueue] = useState<Song[]>(initialSongs);
 
   const [playbackStart, setPlaybackStart] = useState<{
     timestamp: number;
     progressAtStart: number;
   } | null>(null);
+
+  
+  const [playlists] = useState<Playlist[]>(initialPlaylists);
+  const [likedSongs, setLikedSongs] = useState<Set<number>>(new Set(initialLikedSongIds));
+
+  const currentSong = queue[currentIndex];
 
   function startPlayback() {
     setPlaybackStart({
@@ -39,6 +55,9 @@ export function PlaybackBar() {
       progressAtStart: progress,
     });
     setIsPlaying(true);
+    if (currentSong) {
+      void recordPlayback("playback_start", currentSong.id, 1);
+    }
   }
 
   function pausePlayback() {
@@ -64,6 +83,92 @@ export function PlaybackBar() {
     }
   }
 
+  
+  function playPrevious() {
+    setProgress(0);
+    if (currentSong) {
+      void recordPlayback("playback_start", currentSong.id, 1);
+    }
+    
+    setIsPlaying(true);
+    setPlaybackStart({
+      timestamp: Date.now(),
+      progressAtStart: 0,
+    });
+  }
+  
+
+  const playNext = useCallback(() => {
+    if (currentIndex < queue.length - 1) {
+      const nextIndex = currentIndex + 1;
+      const nextSong = queue[nextIndex];
+      setCurrentIndex(nextIndex);
+      setProgress(0);
+      if (isPlaying) {
+        setPlaybackStart({
+          timestamp: Date.now(),
+          progressAtStart: 0,
+        });
+        if (nextSong) {
+          void recordPlayback("playback_start", nextSong.id, 1);
+        }
+      }
+    } else {
+      setIsPlaying(false);
+      setPlaybackStart(null);
+    }
+  }, [currentIndex, isPlaying, queue]);
+
+
+  function handleUserNext() {
+    const prevSong = currentSong;
+    const hasNext = currentIndex < queue.length - 1;
+
+    if (prevSong) {
+      setPlaybackStart({ timestamp: Date.now(), progressAtStart: 0 });
+      void recordPlayback("playback_skip", prevSong.id, 1);
+    }
+
+    if (hasNext) {
+      const nextIndex = currentIndex + 1;
+      setCurrentIndex(nextIndex);
+      setProgress(0);
+
+      if (isPlaying) {
+        setPlaybackStart({ timestamp: Date.now(), progressAtStart: 0 });
+        const nextSong = queue[nextIndex];
+        if (nextSong) {
+          void recordPlayback("playback_start", nextSong.id, 1);
+        }
+      }
+    } else {
+      setIsPlaying(false);
+      setPlaybackStart(null);
+    }
+  }
+
+  function toggleShuffle() {
+    if (isShuffled) {
+      
+      setQueue(originalQueue);
+      setCurrentIndex(0);
+      setIsShuffled(false);
+    } else {
+      
+      const shuffled = [...queue].sort(() => Math.random() - 0.5);
+      setQueue(shuffled);
+      setCurrentIndex(0);
+      setIsShuffled(true);
+    }
+    setProgress(0);
+    if (isPlaying) {
+      setPlaybackStart({
+        timestamp: Date.now(),
+        progressAtStart: 0,
+      });
+    }
+  }
+
   useEffect(() => {
     if (!isPlaying || currentSong == null || playbackStart == null) return;
 
@@ -72,9 +177,9 @@ export function PlaybackBar() {
       const newProgress = playbackStart.progressAtStart + elapsed;
 
       if (newProgress >= currentSong.duration) {
-        setProgress(currentSong.duration);
-        setIsPlaying(false);
-        setPlaybackStart(null);
+       
+        void recordPlayback("playback_end", currentSong.id, 1);
+        playNext();
       } else {
         setProgress(newProgress);
       }
@@ -83,7 +188,7 @@ export function PlaybackBar() {
     return () => {
       clearInterval(interval);
     };
-  }, [isPlaying, currentSong, playbackStart]);
+  }, [isPlaying, currentSong, playbackStart, playNext]);
 
   const duration = currentSong?.duration || 0;
   const remaining = duration - progress;
@@ -107,7 +212,7 @@ export function PlaybackBar() {
 
       <div className="flex flex-col items-center gap-1 flex-1 max-w-xl">
         <div className="flex items-center gap-2">
-          <button className="btn btn-circle btn-sm btn-ghost">
+          <button className="btn btn-circle btn-sm btn-ghost" onClick={playPrevious}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -151,7 +256,7 @@ export function PlaybackBar() {
             )}
           </button>
 
-          <button className="btn btn-circle btn-sm btn-ghost">
+          <button className="btn btn-circle btn-sm btn-ghost" onClick={handleUserNext}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 24 24"
@@ -161,6 +266,27 @@ export function PlaybackBar() {
               <path d="M5.055 7.06c-1.25-.714-2.805.189-2.805 1.628v8.123c0 1.44 1.555 2.342 2.805 1.628L12 14.471v2.34c0 1.44 1.555 2.342 2.805 1.628l7.108-4.061c1.26-.72 1.26-2.536 0-3.256L14.805 7.06C13.555 6.346 12 7.25 12 8.688v2.34L5.055 7.06z" />
             </svg>
           </button>
+
+          <button 
+            className={`btn btn-circle btn-sm btn-ghost ${isShuffled ? 'btn-active' : ''}`} 
+            onClick={toggleShuffle}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-4 h-4"
+            >
+              <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v3.75c0 .315-.21.585-.495.705l-7.5 3c-.24.09-.51-.015-.66-.21a.75.75 0 0 1 .165-1.05l7.5-3V4.125c0-.207.168-.375.375-.375h1.5c.207 0 .375.168.375.375v9.75c0 .087-.015.172-.045.255L9.42 18.21a.75.75 0 0 1-1.035-.165.75.75 0 0 1 .165-1.05l8.955-7.5c.315-.21.585-.495.705-.825v-3.75c0-1.035.84-1.875 1.875-1.875h1.5c.207 0 .375.168.375.375v1.5c0 .207-.168.375-.375.375h-1.5c-.207 0-.375-.168-.375-.375V4.125c0-.621-.504-1.125-1.125-1.125h-1.5zM7.5 9.75c0-.207.168-.375.375-.375h1.5c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-1.5c-.207 0-.375-.168-.375-.375v-9.75z"/>
+            </svg>
+          </button>
+
+          {currentSong && (
+            <AddSongToPlaylistButton
+              playlists={playlists}
+              songId={currentSong.id}
+            />
+          )}
         </div>
 
         <div className="flex items-center gap-2 w-full">
@@ -180,7 +306,25 @@ export function PlaybackBar() {
           </span>
         </div>
       </div>
-      <div className="w-64 min-w-64"></div>
+      <div className="flex items-center gap-2 w-64 min-w-64 justify-end">
+        {currentSong && (
+          <LikeSongButton
+            songId={currentSong.id}
+            isLiked={likedSongs.has(currentSong.id)}
+            onToggle={(songId, newLiked) => {
+              setLikedSongs(prev => {
+                const newSet = new Set(prev);
+                if (newLiked) {
+                  newSet.add(songId);
+                } else {
+                  newSet.delete(songId);
+                }
+                return newSet;
+              });
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }

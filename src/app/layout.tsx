@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { NavBar } from "./NavBar";
-import { PlaybackBar } from "./PlaybackBar";
+import { PlaybackBarWrapper } from "./PlaybackBarWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,8 +33,8 @@ export default function RootLayout({
         <div className="fixed top-0 left-0 right-0">
           <NavBar />
         </div>
-        <div className="fixed h-24 bg-base-100 bottom-0 left-0 right-0 inset-shadow-sm">
-          <PlaybackBar />
+        <div className="fixed h-24 bg-base-100 bottom-0 left-0 right-0 inset-shadow-sm z-10">
+          <PlaybackBarWrapper />
         </div>
       </body>
     </html>

@@ -31,7 +31,7 @@ export function NavBar() {
           onKeyUp={(e) => {
             console.log("key pressed:", e.key);
             if (e.key === 'Enter') {
-              // TODO - add proper code and sanitization
+              
               router.push(`/search?q=${searchInput}`)
             }
           }}
@@ -50,6 +50,9 @@ export function NavBar() {
         </Link>
         <Link href="/liked_songs" className="btn btn-ghost text-xl">
           Liked Songs
+        </Link>
+        <Link href="/history" className="btn btn-ghost text-xl">
+          History
         </Link>
       </div>
     </div>

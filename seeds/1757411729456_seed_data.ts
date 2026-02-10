@@ -135,7 +135,7 @@ export async function seed(db: Kysely<DB>): Promise<void> {
     }
   }
 
-  // Seed user liked songs (0-20 random songs per user)
+ 
   for (const user of users) {
     const numLikedSongs = faker.number.int({ min: 0, max: 20 });
     const randomSongIds = faker.helpers.arrayElements(songIds, {
