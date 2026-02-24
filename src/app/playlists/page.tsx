@@ -1,14 +1,23 @@
 import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { CreatePlaylistButton } from "./CreatePlaylistButton";
+import { cookies } from "next/headers";
+import { use } from "react";
 
 export default async function PlaylistsPage() {
   const db = getDb();
+  const userId = (await cookies()).get("auth")?.value;
+  
+  if (!userId) {
+    return (
+      null
+    );
+  }
 
   const playlists = await db
     .selectFrom("playlists")
     .selectAll()
-    .where("user_id", "=", 1)
+    .where("user_id", "=", (parseInt(userId)))
     .execute();
 
   return (

@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { RemoveLikeButton } from "./RemoveLikeButton";
+import { cookies } from "next/headers";
 
 function formatDuration(duration: number): string {
   const minutes = Math.floor(duration / 60);
@@ -11,6 +12,17 @@ function formatDuration(duration: number): string {
 
 export default async function LikedSongsPage() {
   const db = getDb();
+  const cookieStore = await cookies();
+  const userId = cookieStore.get("auth")?.value;
+  
+  if (!userId) {
+    return (
+      null
+    );
+  }
+
+
+  
 
   const likedSongs = await db
     .selectFrom("user_liked_songs")
@@ -27,7 +39,7 @@ export default async function LikedSongsPage() {
       "albums.author_id",
       "authors.name as author_name",
     ])
-    .where("user_liked_songs.user_id", "=", 1)
+    .where("user_liked_songs.user_id", "=", (parseInt(userId)))
     .execute();
 
   return (

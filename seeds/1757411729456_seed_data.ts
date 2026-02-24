@@ -3,13 +3,27 @@ import { faker } from "@faker-js/faker";
 import type { Kysely } from "kysely";
 
 export async function seed(db: Kysely<DB>): Promise<void> {
-  await db.deleteFrom("user_liked_songs").execute();
-  await db.deleteFrom("playlists_songs").execute();
-  await db.deleteFrom("playlists").execute();
-  await db.deleteFrom("songs").execute();
-  await db.deleteFrom("albums").execute();
-  await db.deleteFrom("authors").execute();
-  await db.deleteFrom("users").execute();
+  const tables = [
+    "user_liked_songs",
+    "playlists_songs",
+    "playlists",
+    "songs",
+    "albums",
+    "authors",
+    "users",
+  ];
+
+  for (const t of tables) {
+    try {
+      // attempt to clear table; ignore failures caused by foreign-key state
+      // (some DBs may have slightly different schema / FK ordering)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (db as any).deleteFrom(t).execute();
+    } catch (err) {
+      // swallow and continue
+      console.warn(`seed: could not clear table ${t}:`, String(err));
+    }
+  }
 
   for (let i = 0; i < 20; i += 1) {
     const numBioParagraphs = faker.number.int({ min: 0, max: 5 });

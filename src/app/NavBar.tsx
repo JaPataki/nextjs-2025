@@ -2,15 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { logoutAction } from "@/actions/auth";
+
 
 export function NavBar() {
   const router = useRouter();
   const [searchInput, setSearchInput] = useState("");
+  const [loggedIn, setLoggedIn] = useState(false);
 
   console.log("NavBar render searchInput:", searchInput);
 
   const searchLinkQuery = searchInput !== "" ? { q: searchInput } : {};
+
+  useEffect(() => {
+    if (document.cookie.includes("auth=")) {
+      setLoggedIn(true);
+    } else {
+      setLoggedIn(false);
+    }
+  }, []);
 
   return (
     <div className="navbar bg-base-100 shadow-sm">
@@ -51,6 +62,17 @@ export function NavBar() {
         <Link href="/liked_songs" className="btn btn-ghost text-xl">
           Liked Songs
         </Link>
+        {loggedIn ? (
+          <form action={logoutAction} className="inline">
+            <button type="submit" className="btn btn-ghost text-xl">
+              Logout
+            </button>
+          </form>
+        ) : (
+          <Link href="/login" className="btn btn-ghost text-xl">
+            Login
+          </Link>
+        )}
         <Link href="/history" className="btn btn-ghost text-xl">
           History
         </Link>

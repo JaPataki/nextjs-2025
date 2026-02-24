@@ -2,13 +2,19 @@
 
 import { getDb } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 
 export async function likeSong(songId: number) {
   const db = getDb();
-  // Uses unique constraint - ignores if already liked (no extra SELECT needed)
+  const userId = (await cookies()).get("auth")?.value;
+  
+  if (!userId) {
+    return;
+  } 
+  
   await db
     .insertInto("user_liked_songs")
-    .values({ user_id: 1, song_id: songId })
+    .values({ user_id: parseInt(userId), song_id: songId })
     .onConflict((oc) => oc.columns(["user_id", "song_id"]).doNothing())
     .execute();
   revalidatePath("/");

@@ -3,9 +3,11 @@ import Link from "next/link";
 import { AddSongToPlaylistButton } from "./AddSongToPlaylistButton";
 import { LikeSongButton } from "@/components/LikeSongButton";
 
+
 function formatDuration(duration: number): string {
   const minutes = Math.floor(duration / 60);
   const seconds = duration % 60;
+  
 
   return `${minutes}` + ":" + `${seconds}`.padStart(2, "0");
 }
@@ -16,6 +18,7 @@ export default async function AlbumDetail({
   params: Promise<{ id: string }>;
 }) {
   const db = getDb();
+
 
   const { id } = await params;
 
@@ -39,9 +42,9 @@ export default async function AlbumDetail({
     .where("albums.id", "=", albumId)
     .executeTakeFirst();
 
-  // if (album == null)
+  
   if (album === null || album === undefined) {
-    // throw new Error("Not Found");
+    
     return <div>Album not found</div>;
   }
 

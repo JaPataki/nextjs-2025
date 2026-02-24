@@ -1,27 +1,27 @@
 {
-    "sqltools.connections": [
-        {
-            "previewLimit": 50,
-            "driver": "SQLite",
-            "name": "Localhost",
-            "database": "db.sqlite"
-        }
-    ],
-    "editor.tabSize": 2,
-    "editor.formatOnSave": true,
-    "dbcode.connections": [
-        {
-            "connectionId": "hQ8otdLTNC2H36NH5XKod",
-            "name": "Local",
-            "driver": "sqlite",
-            "connectionType": "socket",
-            "socket": "app/db.sqlite",
-            "readOnly": false,
-            "driverOptions": {
-                "extensions": []
-            },
-            "idleTimeout": 0
-        }
-    ],
-    "sqltools.useNodeRuntime": true
+  "sqltools.connections": [
+    {
+      "name": "nextjs-2025 - db.sqlite",
+      "driver": "SQLite",
+      "database": "${workspaceFolder}/db.sqlite",
+      "previewLimit": 50
+    }
+  ],
+  "editor.tabSize": 2,
+  "editor.formatOnSave": true,
+  "dbcode.connections": [
+    {
+      "connectionId": "local-db",
+      "name": "nextjs-2025 db.sqlite",
+      "driver": "sqlite",
+      "connectionType": "file",
+      "file": "${workspaceFolder}/db.sqlite",
+      "readOnly": false,
+      "driverOptions": {
+        "extensions": []
+      },
+      "idleTimeout": 0
+    }
+  ],
+  "sqltools.useNodeRuntime": true
 }

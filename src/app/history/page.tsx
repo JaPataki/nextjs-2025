@@ -1,4 +1,5 @@
 import { getDb } from "@/lib/db";
+import { cookies } from "next/headers";
 
 
 type EventItem = {
@@ -11,6 +12,13 @@ type EventItem = {
 
 export default async function HistoryPage() {
   const db = getDb();
+  const userId = (await cookies()).get("auth")?.value;
+  
+  if (!userId) {
+    return (
+      null
+    );
+  }
 
   const events = (await db
     .selectFrom("playback_events")
@@ -22,6 +30,7 @@ export default async function HistoryPage() {
       "playback_events.song_id",
       "songs.name as song_name",
     ])
+    .where("playback_events.user_id", "=", (parseInt(userId)))
     .orderBy("playback_events.event_date", "desc")
     .execute()) as EventItem[];
 
